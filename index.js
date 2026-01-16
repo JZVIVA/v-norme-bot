@@ -136,7 +136,7 @@ app.use(express.json());
 
 // ====== BOT ======
 const bot = new Telegraf(TELEGRAM_BOT_TOKEN);
-
+bot.catch((err, ctx) => console.error("BOT ERROR", err));
 bot.catch((err, ctx) => {
   console.error("BOT ERROR", err);
 });
@@ -614,7 +614,16 @@ const mem = getMem(chatId);
 
 extractNumeric(mem, text);
 extractLists(mem, ctx.message?.text ?? "");
+bot.on("voice", async (ctx) => {
+  console.log("VOICE update", ctx.message?.voice?.file_id);
+  await ctx.reply("Голос получен. Тест ок.");
+});
 
+bot.on("photo", async (ctx) => {
+  const p = ctx.message?.photo?.[ctx.message.photo.length - 1];
+  console.log("PHOTO update", p?.file_id);
+  await ctx.reply("Фото получено. Тест ок.");
+});
 // 1) дешёвое извлечение (уже сделали выше)
 
   // 2) редкое ИИ-извлечение (раз в 10 минут максимум)

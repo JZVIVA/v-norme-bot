@@ -523,7 +523,7 @@ function parseExtractText(mem, extracted) {
 
 // ====== BOT HANDLERS ======
 bot.start(async (ctx) => {
-  await ctx.reply("Привет! С чего бы вы хотели начать: еда/готовка, вес/питание, самочувствие или активность?");
+  await ctx.reply("Привет. С чего начнём: вес, питание, самочувствие, активность или меню?");
 });
 
 bot.on("text", async (ctx) => {

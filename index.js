@@ -1,6 +1,121 @@
 const express = require("express");
 const { Telegraf } = require("telegraf");
+// ===== Memory (cheap) per user =====
+const memory = new Map(); 
+// memory.get(chatId) = { profile: {...}, prefs: {...}, summary: "..." , history: [{role, content}], lastSummaryAt: 0 }
 
+function getState(chatId) {
+  if (!memory.has(chatId)) {
+    memory.set(chatId, {
+      profile: {
+        height_cm: null,
+        weight_kg: null,
+        age: null,
+        sex: null,
+        goal: null,                // "снижение" | "набор" | "поддержание"
+        target_weight_kg: null
+      },
+      prefs: {
+        menu_mode: null,           // "точно" | "примерно"
+        portions_mode: null,       // "граммы" | "на глаз"
+        meals_per_day: null
+      },
+      health: {
+        conditions: [],            // массив строк
+        meds: [],                  // массив строк
+        food_limits: []            // массив строк (не ем/нельзя/аллергии)
+      },
+      summary: "",                 // короткое саммари для модели
+      history: [],                 // короткая история 4-8 сообщений
+      lastSummaryAt: 0
+    });
+  }
+  return memory.get(chatId);
+}
+
+// Нормализация текста
+function norm(s) {
+  return (s || "").toString().trim();
+}
+
+// Достаём числа: "170 см", "64.5 кг", "49 лет", "до 60 кг"
+function extractNumbers(text, state) {
+  const t = text.toLowerCase();
+
+  const h = t.match(/(\d{2,3})\s*см/);
+  if (h) state.profile.height_cm = Number(h[1]);
+
+  const w = t.match(/(\d{2,3}(?:[.,]\d{1,2})?)\s*кг/);
+  if (w) state.profile.weight_kg = Number(String(w[1]).replace(",", "."));
+
+  const a = t.match(/(\d{2})\s*лет/);
+  if (a) state.profile.age = Number(a[1]);
+
+  const goalW = t.match(/до\s*(\d{2,3}(?:[.,]\d{1,2})?)\s*кг/);
+  if (goalW) state.profile.target_weight_kg = Number(String(goalW[1]).replace(",", "."));
+
+  if (t.includes("жен")) state.profile.sex = "женский";
+  if (t.includes("муж")) state.profile.sex = "мужской";
+
+  if (t.includes("снизить") || t.includes("похуд")) state.profile.goal = "снижение";
+  if (t.includes("набрать")) state.profile.goal = "набор";
+  if (t.includes("поддерж")) state.profile.goal = "поддержание";
+}
+
+// Грубая выжимка ограничений без ваших личных данных
+function extractLists(text, state) {
+  const t = text.toLowerCase();
+
+  // "не ем ..." / "нельзя ..." / "аллергия ..."
+  const foodTriggers = ["не ем", "нельзя", "аллерг", "исключ"];
+  if (foodTriggers.some(x => t.includes(x))) {
+    state.health.food_limits.push(norm(text));
+    state.health.food_limits = Array.from(new Set(state.health.food_limits)).slice(-10);
+  }
+
+  // лекарства: "пью ..." "принимаю ..." "на препарате ..."
+  const medTriggers = ["пью ", "принимаю", "на препара", "таблет", "капсул"];
+  if (medTriggers.some(x => t.includes(x))) {
+    state.health.meds.push(norm(text));
+    state.health.meds = Array.from(new Set(state.health.meds)).slice(-10);
+  }
+
+  // состояния/диагнозы: ловим просто фразы
+  const condTriggers = ["диагноз", "врач", "болит", "анем", "щитовид", "диабет", "давлен", "сколиоз", "артроз", "всд"];
+  if (condTriggers.some(x => t.includes(x))) {
+    state.health.conditions.push(norm(text));
+    state.health.conditions = Array.from(new Set(state.health.conditions)).slice(-10);
+  }
+}
+
+// Собираем компактное саммари (это уходит в OpenAI вместо длинной истории)
+function buildSummary(state) {
+  const p = state.profile;
+  const pr = [];
+
+  if (p.sex) pr.push(`пол: ${p.sex}`);
+  if (p.age) pr.push(`возраст: ${p.age}`);
+  if (p.height_cm) pr.push(`рост: ${p.height_cm} см`);
+  if (p.weight_kg) pr.push(`вес: ${p.weight_kg} кг`);
+  if (p.goal) pr.push(`цель: ${p.goal}`);
+  if (p.target_weight_kg) pr.push(`цель по весу: ${p.target_weight_kg} кг`);
+
+  const prefs = [];
+  if (state.prefs.menu_mode) prefs.push(`калории: ${state.prefs.menu_mode}`);
+  if (state.prefs.portions_mode) prefs.push(`порции: ${state.prefs.portions_mode}`);
+  if (state.prefs.meals_per_day) prefs.push(`приёмов пищи: ${state.prefs.meals_per_day}`);
+
+  const blocks = [];
+  if (pr.length) blocks.push(`Профиль: ${pr.join(", ")}.`);
+  if (prefs.length) blocks.push(`Формат: ${prefs.join(", ")}.`);
+  if (state.health.food_limits.length) blocks.push(`Ограничения в еде: ${state.health.food_limits.slice(-3).join(" | ")}.`);
+  if (state.health.conditions.length) blocks.push(`Состояния: ${state.health.conditions.slice(-3).join(" | ")}.`);
+  if (state.health.meds.length) blocks.push(`Препараты: ${state.health.meds.slice(-3).join(" | ")}.`);
+
+  return blocks.join("\n").trim();
+}
+
+// ===== End Memory =====
 // ====== ENV ======
 const PORT = process.env.PORT || 3000;
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
@@ -222,10 +337,7 @@ function getMem(chatId) {
   if (!memory.has(chatId)) memory.set(chatId, emptyMem());
   return memory.get(chatId);
 }
-const state = getState(chatId);
-extractNumbers(userText, state);
-extractLists(userText, state);
-state.summary = buildSummary(state);
+
 // ====== CHEAP PARSERS (цифры/простые сигналы) ======
 function extractNumeric(mem, text) {
   const t = (text || "").toLowerCase();

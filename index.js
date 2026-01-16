@@ -538,7 +538,75 @@ function parseExtractText(mem, extracted) {
 bot.start(async (ctx) => {
   await ctx.reply("Привет. С чего начнём: вес, питание, самочувствие, активность или меню?");
 });
+bot.on("voice", async (ctx) => {
+  try {
+    await ctx.reply("Приняла голос. Сейчас переведу в текст и отвечу.");
 
+    const chatId = String(ctx.chat.id);
+    const mem = getMem(chatId);
+
+    const fileId = ctx.message.voice.file_id;
+    const link = await ctx.telegram.getFileLink(fileId);
+
+    const r = await fetch(link.href);
+    const audioBuf = Buffer.from(await r.arrayBuffer());
+
+    // ВАЖНО: тут нужна ваша функция транскрибации (ниже скажу как назвать/куда поставить)
+    const text = await transcribeOpenAI(audioBuf);
+
+    // дальше переиспользуем вашу логику как для текста
+    extractNumeric(mem, text);
+    extractLists(mem, text);
+
+    mem.history.push({ role: "user", content: text });
+    mem.history = mem.history.slice(-MAX_HISTORY);
+
+    const summary = buildSummary(mem);
+
+    // дальше у вас уже есть вызов модели и отправка ответа (ниже по коду bot.on("text"))
+    // сюда вставляем тот же кусок, который у вас генерит ответ, чтобы не дублировать логику
+    const reply = await generateAssistantReply(mem, summary, text); // подставьте вашу фактическую функцию/кусок
+    mem.history.push({ role: "assistant", content: reply });
+    mem.history = mem.history.slice(-MAX_HISTORY);
+
+    await ctx.reply(reply);
+  } catch (e) {
+    console.error("VOICE ERROR", e);
+    await ctx.reply("Не смогла разобрать голос. Попробуйте ещё раз, короче или чуть громче.");
+  }
+});
+bot.on("photo", async (ctx) => {
+  try {
+    await ctx.reply("Приняла фото. Сейчас посмотрю и отвечу.");
+
+    const chatId = String(ctx.chat.id);
+    const mem = getMem(chatId);
+
+    const photos = ctx.message.photo;
+    const best = photos[photos.length - 1];
+    const link = await ctx.telegram.getFileLink(best.file_id);
+
+    // ВАЖНО: тут нужна ваша функция анализа фото (vision)
+    const text = await analyzeImageOpenAI(link.href, ctx.message.caption || "");
+
+    extractNumeric(mem, text);
+    extractLists(mem, text);
+
+    mem.history.push({ role: "user", content: text });
+    mem.history = mem.history.slice(-MAX_HISTORY);
+
+    const summary = buildSummary(mem);
+
+    const reply = await generateAssistantReply(mem, summary, text); // подставьте вашу фактическую функцию/кусок
+    mem.history.push({ role: "assistant", content: reply });
+    mem.history = mem.history.slice(-MAX_HISTORY);
+
+    await ctx.reply(reply);
+  } catch (e) {
+    console.error("PHOTO ERROR", e);
+    await ctx.reply("Не смогла обработать фото. Пришлите ещё раз, лучше без сильного размытия.");
+  }
+});
 bot.on("text", async (ctx) => {
   const chatId = String(ctx.chat.id);
 const text = ctx.message.text || "";

@@ -222,7 +222,10 @@ function getMem(chatId) {
   if (!memory.has(chatId)) memory.set(chatId, emptyMem());
   return memory.get(chatId);
 }
-
+const state = getState(chatId);
+extractNumbers(userText, state);
+extractLists(userText, state);
+state.summary = buildSummary(state);
 // ====== CHEAP PARSERS (цифры/простые сигналы) ======
 function extractNumeric(mem, text) {
   const t = (text || "").toLowerCase();

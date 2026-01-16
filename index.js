@@ -64,7 +64,7 @@ function extractNumbers(text, state) {
 
 // Грубая выжимка ограничений без ваших личных данных
 function extractLists(text, state) {
-  const t = text.toLowerCase();
+  const t = (typeof text === "string" ? text : (text?.text ?? "")).toLowerCase();
 
   // "не ем ..." / "нельзя ..." / "аллергия ..."
   const foodTriggers = ["не ем", "нельзя", "аллерг", "исключ"];
@@ -136,6 +136,10 @@ app.use(express.json());
 
 // ====== BOT ======
 const bot = new Telegraf(TELEGRAM_BOT_TOKEN);
+
+bot.catch((err, ctx) => {
+  console.error("BOT ERROR", err);
+});
 
 // ====== SYSTEM PROMPT (ВАШ) ======
 const SYSTEM_PROMPT = `
@@ -541,7 +545,7 @@ const text = ctx.message.text || "";
 const mem = getMem(chatId);
 
 extractNumeric(mem, text);
-extractLists(mem, text);
+extractLists(mem, ctx.message?.text ?? "");
 
 // 1) дешёвое извлечение (уже сделали выше)
 

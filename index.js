@@ -555,14 +555,13 @@ extractLists(mem, text);
 
   // 4) строим саммари (в модель идёт только это, а не простыни)
   const summary = buildSummary(mem);
-
-  // 5) основной ответ
-  const messages = [
-    { role: "system", content: SYSTEM_PROMPT },
-    { role: "system", content: summary ? `ПАМЯТЬ О ПОЛЬЗОВАТЕЛЕ: ${summary}` : "ПАМЯТЬ О ПОЛЬЗОВАТЕЛЕ: пока нет данных." },
-    { role: "system", content: `Формат ответа: коротко. 1) логика 1-2 предложения 2) шаги 1-3 пункта 3) ОДИН вопрос только если без него нельзя.` },
-    ...mem.history
-  ];
+const messages = [
+  { role: "system", content: SYSTEM_PROMPT },
+  summary
+    ?{ role: "system", content: КОНТЕКСТ ПОЛЬЗОВАТЕЛЯ\n${summary} }
+    : null,
+  ...mem.history,
+].filter(Boolean);
 
   try {
     const answer = await callOpenAI(messages, MAX_REPLY_TOKENS);

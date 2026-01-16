@@ -315,7 +315,6 @@ ________________________________________
 `;
 
 // ====== MEMORY (по chat_id) ======
-const memory = new Map();
 
 function emptyMem() {
   return {

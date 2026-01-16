@@ -1,5 +1,49 @@
 const express = require("express");
 const { Telegraf } = require("telegraf");
+async function transcribeOpenAI(fileUrl) {
+  const response = await fetch(fileUrl);
+  const buffer = await response.arrayBuffer();
+
+  const openaiRes = await fetch("https://api.openai.com/v1/audio/transcriptions", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`
+    },
+    body: (() => {
+      const form = new FormData();
+      form.append("file", new Blob([buffer]), "audio.ogg");
+      form.append("model", "gpt-4o-transcribe");
+      return form;
+    })()
+  });
+
+  const data = await openaiRes.json();
+  return data.text || "";
+}
+async function analyzeImageOpenAI(imageUrl, prompt = "Опиши, что на фото") {
+  const res = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      model: "gpt-4.1-mini",
+      messages: [
+        {
+          role: "user",
+          content: [
+            { type: "text", text: prompt },
+            { type: "image_url", image_url: { url: imageUrl } }
+          ]
+        }
+      ]
+    })
+  });
+
+  const json = await res.json();
+  return json.choices?.[0]?.message?.content || "";
+}
 // ===== Memory (cheap) per user =====
 const memory = new Map(); 
 // memory.get(chatId) = { profile: {...}, prefs: {...}, summary: "..." , history: [{role, content}], lastSummaryAt: 0 }

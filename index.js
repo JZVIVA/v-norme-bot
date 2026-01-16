@@ -528,11 +528,13 @@ bot.start(async (ctx) => {
 
 bot.on("text", async (ctx) => {
   const chatId = String(ctx.chat.id);
-  const text = ctx.message.text || "";
-  const mem = getMem(chatId);
+const text = ctx.message.text || "";
+const mem = getMem(chatId);
 
-  // 1) дешёвое извлечение
-  extractNumeric(mem, text);
+extractNumeric(mem, text);
+extractLists(mem, text);
+
+// 1) дешёвое извлечение (уже сделали выше)
 
   // 2) редкое ИИ-извлечение (раз в 10 минут максимум)
   const now = Date.now();

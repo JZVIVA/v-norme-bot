@@ -167,7 +167,7 @@ const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const PUBLIC_URL = process.env.PUBLIC_URL; // https://ваш-сервис.onrender.com
 
 const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-4.1-mini";
-const MAX_HISTORY = Number(process.env.MAX_HISTORY || 8); // 6–8 оптимально
+const MAX_HISTORY = Number(process.env.MAX_HISTORY || 30);
 const MAX_REPLY_TOKENS = Number(process.env.MAX_REPLY_TOKENS || 700);
 
 if (!TELEGRAM_BOT_TOKEN) throw new Error("Missing TELEGRAM_BOT_TOKEN");

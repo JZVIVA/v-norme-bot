@@ -44,8 +44,40 @@ async function analyzeImageOpenAI(imageUrl, prompt = "Опиши, что на ф
   const json = await res.json();
   return json.choices?.[0]?.message?.content || "";
 }
+// ====== PERSIST MEMORY (Render Disk) ======
+const fs = require("fs");
+const MEMORY_FILE = process.env.MEMORY_FILE || "/var/data/memory.json";
+
+function loadMemoryFromDisk() {
+  try {
+    if (!fs.existsSync(MEMORY_FILE)) return;
+    const raw = fs.readFileSync(MEMORY_FILE, "utf-8");
+    const obj = JSON.parse(raw || "{}");
+    for (const [k, v] of Object.entries(obj)) memory.set(k, v);
+    console.log("MEMORY loaded:", Object.keys(obj).length);
+  } catch (e) {
+    console.error("MEMORY load error:", e);
+  }
+}
+
+let saveTimer = null;
+function saveMemoryToDiskDebounced() {
+  try {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => {
+      const obj = Object.fromEntries(memory.entries());
+      fs.mkdirSync(require("path").dirname(MEMORY_FILE), { recursive: true });
+      fs.writeFileSync(MEMORY_FILE, JSON.stringify(obj), "utf-8");
+      console.log("MEMORY saved:", Object.keys(obj).length);
+    }, 500);
+  } catch (e) {
+    console.error("MEMORY save schedule error:", e);
+  }
+}
+// ====== END PERSIST MEMORY ======
 // ===== Memory (cheap) per user =====
-const memory = new Map(); 
+const memory = new Map();
+loadMemoryFromDisk();
 // memory.get(chatId) = { profile: {...}, prefs: {...}, summary: "..." , history: [{role, content}], lastSummaryAt: 0 }
 
 function getState(chatId) {
@@ -686,7 +718,7 @@ bot.on("photo", async (ctx) => {
   // 3) история короткая (экономия)
   mem.history.push({ role: "user", content: text });
   mem.history = mem.history.slice(-MAX_HISTORY);
-
+saveMemoryToDiskDebounced();
   // 4) строим саммари (в модель идёт только это, а не простыни)
   const summary = buildSummary(mem);
 

@@ -733,7 +733,7 @@ const messages = [
 
     mem.history.push({ role: "assistant", content: answer });
     mem.history = mem.history.slice(-MAX_HISTORY);
-
+saveMemoryToDiskDebounced();
     await ctx.reply(answer);
   } catch (e) {
     console.error(e);

@@ -731,8 +731,7 @@ mem.lastActiveAt = Date.now();
     const reply = await generateAssistantReply(mem, summary, text); // подставьте вашу фактическую функцию/кусок
     mem.history.push({ role: "assistant", content: reply });
     mem.history = mem.history.slice(-MAX_HISTORY);
-
-    await sendLong(ctx, reply);
+  await sendLong(ctx, reply);
   } catch (e) {
     console.error("PHOTO ERROR", e);
     await ctx.reply("Не смогла обработать фото. Пришлите ещё раз, лучше без сильного размытия.");

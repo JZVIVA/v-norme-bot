@@ -82,6 +82,27 @@ function resetUser(chatId) {
     console.error("RESET error:", e);
   }
 }
+function cleanupInactiveUsers() {
+  try {
+    const now = Date.now();
+    let removed = 0;
+
+    for (const [chatId, mem] of memory.entries()) {
+      const last = mem?.lastActiveAt || 0;
+      if (last && (now - last) > TTL_MS) {
+        memory.delete(chatId);
+        removed++;
+      }
+    }
+
+    if (removed > 0) {
+      saveMemoryToDiskDebounced();
+      console.log("TTL cleanup removed:", removed);
+    }
+  } catch (e) {
+    console.error("TTL cleanup error:", e);
+  }
+}
 // ====== END PERSIST MEMORY ======
 // ===== Memory (cheap) per user =====
 const memory = new Map();

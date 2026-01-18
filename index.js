@@ -112,6 +112,7 @@ function getState(chatId) {
       summary: "",                 // короткое саммари для модели
       history: [],                 // короткая история 4-8 сообщений
       lastSummaryAt: 0
+      lastActiveAt: Date.now()
     });
   }
   return memory.get(chatId);

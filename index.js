@@ -653,15 +653,16 @@ async function sendLong(ctx, text) {
   let s = String(text || "");
 
   while (s.length > MAX) {
-    // стараемся резать по переносам, чтобы не ломать слова
-    let cut = s.lastIndexOf("\n\n", MAX);
-    if (cut < 1000) cut = s.lastIndexOf("\n", MAX);
+    // стараемся резать по переносу, чтобы не ломать слова
+    let cut = s.lastIndexOf("\n", MAX);
+    if (cut < 1000) cut = s.lastIndexOf(" ", MAX);
     if (cut < 1000) cut = MAX;
 
     const part = s.slice(0, cut).trim();
     if (part) await ctx.reply(part);
     s = s.slice(cut).trim();
   }
+
   if (s) await ctx.reply(s);
 }
 bot.start(async (ctx) => {

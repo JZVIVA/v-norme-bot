@@ -657,7 +657,7 @@ bot.on("voice", async (ctx) => {
 
     const chatId = String(ctx.chat.id);
     const mem = getMem(chatId);
-
+mem.lastActiveAt = Date.now();
     const fileId = ctx.message.voice.file_id;
     const link = await ctx.telegram.getFileLink(fileId);
 
@@ -694,7 +694,7 @@ bot.on("photo", async (ctx) => {
 
     const chatId = String(ctx.chat.id);
     const mem = getMem(chatId);
-
+mem.lastActiveAt = Date.now();
     const photos = ctx.message.photo;
     const best = photos[photos.length - 1];
     const link = await ctx.telegram.getFileLink(best.file_id);
@@ -736,7 +736,7 @@ if (
   return;
 }
 const mem = getMem(chatId);
-
+mem.lastActiveAt = Date.now();
 extractNumeric(mem, text);
 extractLists(mem, ctx.message?.text ?? "");
 bot.on("voice", async (ctx) => {

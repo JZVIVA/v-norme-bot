@@ -659,13 +659,10 @@ bot.on("voice", async (ctx) => {
     const mem = getMem(chatId);
 mem.lastActiveAt = Date.now();
     const fileId = ctx.message.voice.file_id;
-    const link = await ctx.telegram.getFileLink(fileId);
+const link = await ctx.telegram.getFileLink(fileId); // link.href = https://...
 
-    const r = await fetch(link.href);
-    const audioBuf = Buffer.from(await r.arrayBuffer());
-
-    // ВАЖНО: тут нужна ваша функция транскрибации (ниже скажу как назвать/куда поставить)
-    const text = await transcribeOpenAI(audioBuf);
+// ВАЖНО: в transcribeOpenAI передаем URL, а не Buffer
+const text = await transcribeOpenAI(link.href);
 
     // дальше переиспользуем вашу логику как для текста
     extractNumeric(mem, text);

@@ -648,6 +648,22 @@ function parseExtractText(mem, extracted) {
 }
 
 // ====== BOT HANDLERS ======
+async function sendLong(ctx, text) {
+  const MAX = 3500; // запас до лимита Telegram
+  let s = String(text || "");
+
+  while (s.length > MAX) {
+    // стараемся резать по переносам, чтобы не ломать слова
+    let cut = s.lastIndexOf("\n\n", MAX);
+    if (cut < 1000) cut = s.lastIndexOf("\n", MAX);
+    if (cut < 1000) cut = MAX;
+
+    const part = s.slice(0, cut).trim();
+    if (part) await ctx.reply(part);
+    s = s.slice(cut).trim();
+  }
+  if (s) await ctx.reply(s);
+}
 bot.start(async (ctx) => {
   await ctx.reply("Привет! С чего начнём: вес, питание, самочувствие, активность или меню?");
 });
@@ -684,7 +700,7 @@ mem.history.push({ role: "assistant", content: answer });
 mem.history = mem.history.slice(-MAX_HISTORY);
 saveMemoryToDiskDebounced();
 
-await ctx.reply(answer);
+await sendLong(ctx, reply);
   } catch (e) {
     console.error("VOICE ERROR", e);
     await ctx.reply("Не смогла разобрать голос. Попробуйте ещё раз, короче или чуть громче.");
@@ -716,7 +732,7 @@ mem.lastActiveAt = Date.now();
     mem.history.push({ role: "assistant", content: reply });
     mem.history = mem.history.slice(-MAX_HISTORY);
 
-    await ctx.reply(reply);
+    await sendLong(ctx, reply);
   } catch (e) {
     console.error("PHOTO ERROR", e);
     await ctx.reply("Не смогла обработать фото. Пришлите ещё раз, лучше без сильного размытия.");
@@ -743,13 +759,11 @@ extractNumeric(mem, text);
 extractLists(mem, ctx.message?.text ?? "");
 bot.on("voice", async (ctx) => {
   console.log("VOICE update", ctx.message?.voice?.file_id);
-  await ctx.reply("Голос получен. Тест ок.");
 });
 
 bot.on("photo", async (ctx) => {
   const p = ctx.message?.photo?.[ctx.message.photo.length - 1];
   console.log("PHOTO update", p?.file_id);
-  await ctx.reply("Фото получено. Тест ок.");
 });
 // 1) дешёвое извлечение (уже сделали выше)
 
@@ -785,7 +799,7 @@ const messages = [
     mem.history.push({ role: "assistant", content: answer });
     mem.history = mem.history.slice(-MAX_HISTORY);
 saveMemoryToDiskDebounced();
-    await ctx.reply(answer);
+    await sendLong(ctx, answer);
   } catch (e) {
     console.error(e);
     await ctx.reply("Ошибка. Попробуйте ещё раз через минуту.");

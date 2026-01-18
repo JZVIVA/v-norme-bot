@@ -672,11 +672,19 @@ bot.on("voice", async (ctx) => {
 
     const summary = buildSummary(mem);
 
-    const reply = await generateAssistantReply(mem, summary, text);
-    mem.history.push({ role: "assistant", content: reply });
-    mem.history = mem.history.slice(-MAX_HISTORY);
+const messages = [
+  { role: "system", content: SYSTEM_PROMPT },
+  ...(summary ? [{ role: "system", content: `КОНТЕКСТ ПОЛЬЗОВАТЕЛЯ:\n${summary}` }] : []),
+  ...mem.history,
+];
 
-    await ctx.reply(reply);
+const answer = await callOpenAI(messages, MAX_REPLY_TOKENS);
+
+mem.history.push({ role: "assistant", content: answer });
+mem.history = mem.history.slice(-MAX_HISTORY);
+saveMemoryToDiskDebounced();
+
+await ctx.reply(answer);
   } catch (e) {
     console.error("VOICE ERROR", e);
     await ctx.reply("Не смогла разобрать голос. Попробуйте ещё раз, короче или чуть громче.");

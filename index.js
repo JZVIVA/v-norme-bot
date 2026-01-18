@@ -653,7 +653,7 @@ bot.start(async (ctx) => {
 });
 bot.on("voice", async (ctx) => {
   try {
-    await ctx.reply("Приняла голос. Сейчас переведу в текст и отвечу.");
+    await ctx.sendChatAction("typing");
 
     const chatId = String(ctx.chat.id);
     const mem = getMem(chatId);

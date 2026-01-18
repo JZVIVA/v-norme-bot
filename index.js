@@ -86,6 +86,8 @@ function resetUser(chatId) {
 // ===== Memory (cheap) per user =====
 const memory = new Map();
 loadMemoryFromDisk();
+const TTL_DAYS = 30;
+const TTL_MS = TTL_DAYS * 24 * 60 * 60 * 1000;
 // memory.get(chatId) = { profile: {...}, prefs: {...}, summary: "..." , history: [{role, content}], lastSummaryAt: 0 }
 
 function getState(chatId) {

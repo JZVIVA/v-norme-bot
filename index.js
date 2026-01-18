@@ -74,6 +74,14 @@ function saveMemoryToDiskDebounced() {
     console.error("MEMORY save schedule error:", e);
   }
 }
+function resetUser(chatId) {
+  try {
+    memory.delete(chatId);
+    saveMemoryToDiskDebounced();
+  } catch (e) {
+    console.error("RESET error:", e);
+  }
+}
 // ====== END PERSIST MEMORY ======
 // ===== Memory (cheap) per user =====
 const memory = new Map();
@@ -216,7 +224,11 @@ bot.catch((err, ctx) => console.error("BOT ERROR", err));
 bot.catch((err, ctx) => {
   console.error("BOT ERROR", err);
 });
-
+bot.command("reset", async (ctx) => {
+  const chatId = String(ctx.chat.id);
+  resetUser(chatId);
+  await ctx.reply("Ок. Я сбросила память и начнем с нуля. Что ваша цель сейчас?");
+});
 // ====== SYSTEM PROMPT (ВАШ) ======
 const SYSTEM_PROMPT = `
 СИСТЕМНОЕ СООБЩЕНИЕ
@@ -612,7 +624,7 @@ function parseExtractText(mem, extracted) {
 
 // ====== BOT HANDLERS ======
 bot.start(async (ctx) => {
-  await ctx.reply("Привет. С чего начнём: вес, питание, самочувствие, активность или меню?");
+  await ctx.reply("Привет! С чего начнём: вес, питание, самочувствие, активность или меню?");
 });
 bot.on("voice", async (ctx) => {
   try {
@@ -686,6 +698,18 @@ bot.on("photo", async (ctx) => {
 bot.on("text", async (ctx) => {
   const chatId = String(ctx.chat.id);
 const text = ctx.message.text || "";
+  const t = text.trim().toLowerCase();
+if (
+  t === "обнули меня" ||
+  t === "сбрось память" ||
+  t === "сбрось" ||
+  t === "начнем сначала" ||
+  t === "начнём сначала"
+) {
+  resetUser(chatId);
+  await ctx.reply("Ок. Я сбросила память и начнем с нуля. Что ваша цель сейчас?");
+  return;
+}
 const mem = getMem(chatId);
 
 extractNumeric(mem, text);

@@ -700,7 +700,7 @@ mem.history.push({ role: "assistant", content: answer });
 mem.history = mem.history.slice(-MAX_HISTORY);
 saveMemoryToDiskDebounced();
 
-await sendLong(ctx, reply);
+await sendLong(ctx, answer);
   } catch (e) {
     console.error("VOICE ERROR", e);
     await ctx.reply("Не смогла разобрать голос. Попробуйте ещё раз, короче или чуть громче.");

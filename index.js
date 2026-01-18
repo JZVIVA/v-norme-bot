@@ -657,14 +657,13 @@ bot.on("voice", async (ctx) => {
 
     const chatId = String(ctx.chat.id);
     const mem = getMem(chatId);
-mem.lastActiveAt = Date.now();
+    mem.lastActiveAt = Date.now();
+
     const fileId = ctx.message.voice.file_id;
-const link = await ctx.telegram.getFileLink(fileId); // link.href = https://...
+    const link = await ctx.telegram.getFileLink(fileId);
 
-// ВАЖНО: в transcribeOpenAI передаем URL, а не Buffer
-const text = await transcribeOpenAI(link.href);
+    const text = await transcribeOpenAI(link.href);
 
-    // дальше переиспользуем вашу логику как для текста
     extractNumeric(mem, text);
     extractLists(mem, text);
 
@@ -673,9 +672,7 @@ const text = await transcribeOpenAI(link.href);
 
     const summary = buildSummary(mem);
 
-    // дальше у вас уже есть вызов модели и отправка ответа (ниже по коду bot.on("text"))
-    // сюда вставляем тот же кусок, который у вас генерит ответ, чтобы не дублировать логику
-    const reply = await generateAssistantReply(mem, summary, text); // подставьте вашу фактическую функцию/кусок
+    const reply = await generateAssistantReply(mem, summary, text);
     mem.history.push({ role: "assistant", content: reply });
     mem.history = mem.history.slice(-MAX_HISTORY);
 

@@ -1,4 +1,4 @@
-Fconst express = require("express");
+const express = require("express");
 const { Telegraf } = require("telegraf");
 async function transcribeOpenAI(fileUrl) {
   const response = await fetch(fileUrl);

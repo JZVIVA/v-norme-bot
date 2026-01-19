@@ -233,7 +233,8 @@ const PUBLIC_URL = process.env.PUBLIC_URL; // https://ваш-сервис.onrend
 
 const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-4.1-mini";
 const MAX_HISTORY = Number(process.env.MAX_HISTORY || 30);
-const MAX_REPLY_TOKENS = Number(process.env.MAX_REPLY_TOKENS || 2000);
+- const MAX_REPLY_TOKENS = Number(process.env.MAX_REPLY_TOKENS || 2000);
++ const MAX_REPLY_TOKENS = Number(process.env.MAX_REPLY_TOKENS || 900);
 
 if (!TELEGRAM_BOT_TOKEN) throw new Error("Missing TELEGRAM_BOT_TOKEN");
 if (!OPENAI_API_KEY) throw new Error("Missing OPENAI_API_KEY");
@@ -348,7 +349,9 @@ ________________________________________
 Дай выбор:
 А) точный режим (калории + граммы);
 Б) лёгкий режим (без весов, порции на глаз).
-Запоминай выбранный формат и используй его дальше, пока пользователь не изменит выбор
+Запоминай выбранный формат и используй его дальше, пока пользователь не изменит выбор.
+Каждый день меню начинай с новой строки и пустой строки перед ним.
+Между днями всегда ставь пустую строку.
 ________________________________________
 РЕЖИМ 3. САМОЧУВСТВИЕ / ФОН
 (усталость, сон, состояние, влияние лекарств)

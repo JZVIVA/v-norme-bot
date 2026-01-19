@@ -704,7 +704,7 @@ saveMemoryToDiskDebounced();
 await sendLong(ctx, answer);
   } catch (e) {
     console.error("VOICE ERROR", e);
-    await ctx.reply("Не смогла разобрать голос. Попробуйте ещё раз, короче или чуть громче.");
+    await sendLong(ctx, "Не смогла разобрать голос. Попробуйте ещё раз, короче или чуть громче.");
   }
 });
 bot.on("photo", async (ctx) => {
@@ -735,7 +735,7 @@ mem.lastActiveAt = Date.now();
   await sendLong(ctx, reply);
   } catch (e) {
     console.error("PHOTO ERROR", e);
-    await ctx.reply("Не смогла обработать фото. Пришлите ещё раз, лучше без сильного размытия.");
+    await sendLong(ctx, "Не смогла обработать фото. Пришлите ещё раз, лучше без сильного размытия.");
   }
 });
 bot.on("text", async (ctx) => {
@@ -750,7 +750,7 @@ if (
   t === "начнём сначала"
 ) {
   resetUser(chatId);
-  await ctx.reply("Ок. Я сбросила память и начнем с нуля. Что ваша цель сейчас?");
+  await sendLong(ctx, "Ок. Я сбросила память и начнём с начала. Что для вас сейчас важнее?");
   return;
 }
 const mem = getMem(chatId);
@@ -802,7 +802,7 @@ saveMemoryToDiskDebounced();
     await sendLong(ctx, answer);
   } catch (e) {
     console.error(e);
-    await ctx.reply("Ошибка. Попробуйте ещё раз через минуту.");
+    await sendLong(ctx, "Ошибка. Попробуйте ещё раз через минуту.");
   }
 });
 

@@ -233,7 +233,7 @@ const PUBLIC_URL = process.env.PUBLIC_URL; // https://ваш-сервис.onrend
 
 const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-4.1-mini";
 const MAX_HISTORY = Number(process.env.MAX_HISTORY || 30);
-const MAX_REPLY_TOKENS = Number(process.env.MAX_REPLY_TOKENS || 2500);
+const MAX_REPLY_TOKENS = Number(process.env.MAX_REPLY_TOKENS || 1200);
 if (!TELEGRAM_BOT_TOKEN) throw new Error("Missing TELEGRAM_BOT_TOKEN");
 if (!OPENAI_API_KEY) throw new Error("Missing OPENAI_API_KEY");
 if (!PUBLIC_URL) throw new Error("Missing PUBLIC_URL");

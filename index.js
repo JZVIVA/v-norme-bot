@@ -29,6 +29,7 @@ async function analyzeImageOpenAI(imageUrl, prompt = "Опиши, что на ф
     },
     body: JSON.stringify({
       model: "gpt-4.1-mini",
+     max_tokens: 350, 
       messages: [
         {
           role: "user",
@@ -713,6 +714,14 @@ bot.on("photo", async (ctx) => {
     await ctx.reply("Приняла фото. Сейчас посмотрю и отвечу.");
 
     const chatId = String(ctx.chat.id);
+const user = getUser(chatId);
+
+user.photosToday = (user.photosToday || 0) + 1;
+
+if (user.photosToday > 5) {
+  await ctx.reply("Лимит фото на сегодня исчерпан. Продолжим с фото завтра.");
+  return;
+}
     const mem = getMem(chatId);
 mem.lastActiveAt = Date.now();
     const photos = ctx.message.photo;

@@ -723,6 +723,7 @@ if (user.photosToday > 5) {
   return;
 }
     const mem = getMem(chatId);
+    mem.greeted = true;
 mem.lastActiveAt = Date.now();
     const photos = ctx.message.photo;
     const best = photos[photos.length - 1];
@@ -764,6 +765,12 @@ if (
   return;
 }
 const mem = getMem(chatId);
+  // приветствие только 1 раз за сессию памяти
+if (!mem.greeted) {
+  mem.greeted = true;
+  await sendLong(ctx, "Расскажите, с чего бы вы хотели начать. Что для вас сейчас самое актуальное?");
+  return;
+}
 mem.lastActiveAt = Date.now();
 extractNumeric(mem, text);
 extractLists(mem, ctx.message?.text ?? "");
@@ -771,10 +778,6 @@ bot.on("voice", async (ctx) => {
   console.log("VOICE update", ctx.message?.voice?.file_id);
 });
 
-bot.on("photo", async (ctx) => {
-  const p = ctx.message?.photo?.[ctx.message.photo.length - 1];
-  console.log("PHOTO update", p?.file_id);
-});
 // 1) дешёвое извлечение (уже сделали выше)
 
   // 2) редкое ИИ-извлечение (раз в 10 минут максимум)

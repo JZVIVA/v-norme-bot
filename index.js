@@ -52,7 +52,7 @@ async function analyzeImageOpenAI(imageUrl, prompt = "Опиши, что на ф
       ]
     }
   ]
-})
+});
 
   const json = await res.json();
   return json.choices?.[0]?.message?.content || "";

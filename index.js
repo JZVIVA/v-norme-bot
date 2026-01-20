@@ -28,19 +28,31 @@ async function analyzeImageOpenAI(imageUrl, prompt = "Опиши, что на ф
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
-      model: "gpt-4.1-mini",
-     max_tokens: 350, 
-      messages: [
-        {
-          role: "user",
-          content: [
-            { type: "text", text: prompt },
-            { type: "image_url", image_url: { url: imageUrl } }
-          ]
-        }
+  model: "gpt-4.1-mini",
+  max_tokens: 350,
+  messages: [
+    {
+      role: "system",
+      content: `Вы — ассистент «В норме» (вес, питание, самочувствие).
+Проанализируйте изображение и верните ТОЛЬКО полезное описание по запросу.
+
+Определите тип фото: еда / продукты / холодильник / упаковка / тело / лицо.
+- Еда/продукты: перечислите, что видите; если уместно, предложите 1–3 варианта блюда/приёма пищи.
+- Упаковка: считайте важный текст (название, состав, БЖУ/ккал, порция).
+- Тело/лицо: нейтральное описание без диагнозов, без оценок.
+
+Если данных недостаточно — напишите, чего не хватает (1 вопрос максимум).
+Коротко, без воды.`
+    },
+    {
+      role: "user",
+      content: [
+        { type: "text", text: prompt || "Опиши, что на фото, и что из этого можно сделать." },
+        { type: "image_url", image_url: { url: imageUrl } }
       ]
-    })
-  });
+    }
+  ]
+})
 
   const json = await res.json();
   return json.choices?.[0]?.message?.content || "";

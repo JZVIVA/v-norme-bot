@@ -790,10 +790,11 @@ mem.history = mem.history.slice(-MAX_HISTORY);
     const summary = buildSummary(mem);
 
     const messages = [
-      { role: "system", content: SYSTEM_PROMPT },
-      ...(summary ? [{ role: "system", content: `КОНТЕКСТ ПОЛЬЗОВАТЕЛЯ:\n${summary}` }] : []),
-      ...mem.history,
-    ];
+  { role: "system", content: SYSTEM_PROMPT },
+  { role: "system", content: "ВАЖНО: диалог уже начат, приветственный вопрос уже был. Не начинай разговор заново, не задавай приветственный вопрос. Сразу ответь по запросу пользователя, используя анализ фото и подпись." },
+  ...(summary ? [{ role: "system", content: `КОНТЕКСТ ПОЛЬЗОВАТЕЛЯ:\n${summary}` }] : []),
+  ...mem.history,
+];
 
     const answer = await callOpenAI(messages, MAX_REPLY_TOKENS);
 
@@ -828,8 +829,7 @@ const mem = getMem(chatId);
   // приветствие только 1 раз за сессию памяти
 if (!mem.greeted) {
   mem.greeted = true;
-  await sendLong(ctx, "Расскажите, с чего бы вы хотели начать. Что для вас сейчас самое актуальное?");
-  return;
+  // не прерываем обработку: дальше текст пойдёт в обычный сценарий
 }
 mem.lastActiveAt = Date.now();
 extractNumeric(mem, text);

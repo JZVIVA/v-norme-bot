@@ -62,9 +62,9 @@ async function analyzeImageOpenAI(imageUrl, prompt = "Опиши, что на ф
     {
       role: "user",
       content: [
-        { type: "text", text: prompt || "Опиши, что на фото, и что из этого можно сделать." },
-        { type: "image_url", image_url: { url: imageUrl } }
-      ]
+  { type: "text", text: prompt || "Опиши, что на фото, и что из этого можно сделать." },
+  { type: "image_url", image_url: { url: imageUrl } }
+]
     }
   ]
 })

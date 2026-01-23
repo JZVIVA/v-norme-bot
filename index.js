@@ -757,23 +757,33 @@ if (mem.photosDay !== dayKey) { mem.photosDay = dayKey; mem.photosToday = 0; }
  
     mem.lastActiveAt = Date.now();
 
-    const photos = ctx.message.photo;
+    const photos = ctx.message.photo || [];
+    if (!photos.length) {
+  await sendLong(ctx, "Не вижу фото. Пришлите фото как изображение (не файлом).");
+  return;
+}
     const best = photos[photos.length - 1];
     const link = await ctx.telegram.getFileLink(best.file_id);
 
     // ВАЖНО: тут нужна ваша функция анализа фото (vision)
     const text = await analyzeImageOpenAI(link.href, ctx.message.caption || "");
-// ВАЖНО: фиксируем запрос пользователя, иначе модель может отвечать "приветственным вопросом"
-const userPrompt = (ctx.message.caption || "").trim() || "Посмотри фото и подскажи, что можно приготовить.";
-mem.history.push({ role: "user", content: userPrompt });
-mem.history = mem.history.slice(-MAX_HISTORY);
+
     extractNumeric(mem, text);
     extractLists(mem, text);
 
     // кладём анализ фото в историю (как system, чтобы модель понимала, что это контекст)
    mem.history.push({ role: "assistant", content: `Анализ фото: ${text}` });
     mem.history = mem.history.slice(-MAX_HISTORY);
+// запрос пользователя — ОБЯЗАТЕЛЬНО последним
+const userPrompt =
+  (typeof ctx.message.caption === "string" ? ctx.message.caption : "").trim() ||
+  "Посмотри фото и подскажи.";
 
+mem.history.push({
+  role: "user",
+  content: userPrompt
+});
+mem.history = mem.history.slice(-MAX_HISTORY);
     // 1) сохраняем сразу (счётчик фото + факт анализа)
     saveMemoryToDiskDebounced();
 

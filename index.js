@@ -770,7 +770,7 @@ saveMemoryToDiskDebounced();
 await sendLong(ctx, answer);
   } catch (e) {
     console.error("VOICE ERROR", e);
-    await sendLong(ctx, "Не смогла разобрать голос. Попробуйте ещё раз, короче или чуть громче.");
+    await sendLong(ctx, "Не смогла разобрать голос. Попробуйте ещё раз, пожалуйста.");
   }
 });
 bot.on("photo", async (ctx) => {
@@ -852,7 +852,7 @@ mem.history = mem.history.slice(-MAX_HISTORY);
     await sendLong(ctx, answer);
   } catch (e) {
     console.error("PHOTO ERROR", e);
-    await sendLong(ctx, "Не смогла обработать фото. Пришлите ещё раз, лучше без сильного размытия.");
+    await sendLong(ctx, "Не смогла обработать фото. Пришлите ещё раз, пожалуйста.");
   }
 });
 bot.on("text", async (ctx) => {

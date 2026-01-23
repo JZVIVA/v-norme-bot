@@ -754,7 +754,7 @@ if (mem.photosDay !== dayKey) { mem.photosDay = dayKey; mem.photosToday = 0; }
     mem.photosToday = photosToday + 1;
 
     mem.greeted = true;
-    const photos = ctx.message.photo;
+ 
     mem.lastActiveAt = Date.now();
 
     const photos = ctx.message.photo;

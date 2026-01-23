@@ -741,17 +741,22 @@ bot.on("photo", async (ctx) => {
     await ctx.reply("Приняла фото. Сейчас посмотрю и отвечу.");
 
     const chatId = String(ctx.chat.id);
-const user = getUser(chatId);
-
-user.photosToday = (user.photosToday || 0) + 1;
-
-if (user.photosToday > 5) {
-  await ctx.reply("Лимит фото на сегодня исчерпан. Продолжим с фото завтра.");
-  return;
-}
     const mem = getMem(chatId);
+const dayKey = new Date().toISOString().slice(0, 10);
+
+if (mem.photosDay !== dayKey) { mem.photosDay = dayKey; mem.photosToday = 0; }
+    // лимит фото в день
+    const photosToday = mem.photosToday || 0;
+    if (photosToday >= 5) {
+      await ctx.reply("Лимит фото на сегодня исчерпан. Продолжим с фото завтра.");
+      return;
+    }
+    mem.photosToday = photosToday + 1;
+
     mem.greeted = true;
-mem.lastActiveAt = Date.now();
+    const photos = ctx.message.photo;
+    mem.lastActiveAt = Date.now();
+
     const photos = ctx.message.photo;
     const best = photos[photos.length - 1];
     const link = await ctx.telegram.getFileLink(best.file_id);
@@ -762,15 +767,30 @@ mem.lastActiveAt = Date.now();
     extractNumeric(mem, text);
     extractLists(mem, text);
 
-    mem.history.push({ role: "user", content: text });
+    // кладём анализ фото в историю (как system, чтобы модель понимала, что это контекст)
+    mem.history.push({ role: "system", content: `АНАЛИЗ ФОТО: ${text}` });
     mem.history = mem.history.slice(-MAX_HISTORY);
+
+    // 1) сохраняем сразу (счётчик фото + факт анализа)
+    saveMemoryToDiskDebounced();
 
     const summary = buildSummary(mem);
 
-    const reply = await generateAssistantReply(mem, summary, text); // подставьте вашу фактическую функцию/кусок
-    mem.history.push({ role: "assistant", content: reply });
+    const messages = [
+      { role: "system", content: SYSTEM_PROMPT },
+      ...(summary ? [{ role: "system", content: `КОНТЕКСТ ПОЛЬЗОВАТЕЛЯ:\n${summary}` }] : []),
+      ...mem.history,
+    ];
+
+    const answer = await callOpenAI(messages, MAX_REPLY_TOKENS);
+
+    mem.history.push({ role: "assistant", content: answer });
     mem.history = mem.history.slice(-MAX_HISTORY);
-  await sendLong(ctx, reply);
+
+    // 2) сохраняем ещё раз (чтобы точно сохранился ответ ассистента)
+    saveMemoryToDiskDebounced();
+
+    await sendLong(ctx, answer);
   } catch (e) {
     console.error("PHOTO ERROR", e);
     await sendLong(ctx, "Не смогла обработать фото. Пришлите ещё раз, лучше без сильного размытия.");

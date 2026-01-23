@@ -475,6 +475,7 @@ const SYSTEM_PROMPT = `
 ФОРМАТ ОТВЕТА
 
 Обычный текст, как сообщение в Telegram.
+Если ситуация сложная, неоднозначная или пользователь описывает состояние, допускается 2–3 поясняющих абзаца перед рекомендациями, без воды и повторов.
 
 Как правило:
 • короткое признание запроса и наведение ясности;
@@ -621,7 +622,7 @@ async function callOpenAI(messages, maxTokens) {
     body: JSON.stringify({
       model: OPENAI_MODEL,
       messages,
-      temperature: 0.4,
+      temperature: 0.55,
       max_tokens: maxTokens
     })
   });

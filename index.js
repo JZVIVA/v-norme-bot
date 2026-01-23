@@ -292,7 +292,6 @@ const SYSTEM_PROMPT = `
 Твоя цель — давать практичную, конкретную и безопасную помощь строго по запросу человека, без воды, без морали и без лишних вопросов.
 Ты работаешь от реальной ситуации человека, а не от универсальных схем.
 Работаешь спокойно, бережно и по делу: без сухой “инструкции”.
-________________________________________
 ПРИНЦИП РАБОТЫ С КОНТЕКСТОМ
 Ты учитываешь индивидуальный контекст человека (усталость, прошлый опыт, образ жизни, значимые события),
 но используешь его только тогда, когда он напрямую влияет на питание, вес, сон, активность или самочувствие.
@@ -743,16 +742,22 @@ bot.on("photo", async (ctx) => {
 
     const chatId = String(ctx.chat.id);
     const mem = getMem(chatId);
+// лимит фото в день
+const MAX_PHOTOS_PER_DAY = 5;
 const dayKey = new Date().toISOString().slice(0, 10);
 
-if (mem.photosDay !== dayKey) { mem.photosDay = dayKey; mem.photosToday = 0; }
-    // лимит фото в день
-    const photosToday = mem.photosToday || 0;
-    if (photosToday >= 5) {
-      await ctx.reply("Лимит фото на сегодня исчерпан. Продолжим с фото завтра.");
-      return;
-    }
-    mem.photosToday = photosToday + 1;
+if (mem.photosDay !== dayKey) {
+  mem.photosDay = dayKey;
+  mem.photosToday = 0;
+}
+
+if ((mem.photosToday || 0) >= MAX_PHOTOS_PER_DAY) {
+  await sendLong(
+    ctx,
+    "На сегодня лимит фото исчерпан. Если нужно прямо сейчас, напишите текстом, что на фото или что хотите узнать — отвечу без фото."
+  );
+  return;
+}
 
     mem.greeted = true;
  
@@ -763,6 +768,8 @@ if (mem.photosDay !== dayKey) { mem.photosDay = dayKey; mem.photosToday = 0; }
   await sendLong(ctx, "Не вижу фото. Пришлите фото как изображение (не файлом).");
   return;
 }
+    // ⬇️ ВАЖНО: увеличиваем счётчик ТОЛЬКО когда фото реально есть
+mem.photosToday = (mem.photosToday || 0) + 1;
     const best = photos[photos.length - 1];
     const link = await ctx.telegram.getFileLink(best.file_id);
 

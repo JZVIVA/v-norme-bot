@@ -763,12 +763,15 @@ if (mem.photosDay !== dayKey) { mem.photosDay = dayKey; mem.photosToday = 0; }
 
     // ВАЖНО: тут нужна ваша функция анализа фото (vision)
     const text = await analyzeImageOpenAI(link.href, ctx.message.caption || "");
-
+// ВАЖНО: фиксируем запрос пользователя, иначе модель может отвечать "приветственным вопросом"
+const userPrompt = (ctx.message.caption || "").trim() || "Посмотри фото и подскажи, что можно приготовить.";
+mem.history.push({ role: "user", content: userPrompt });
+mem.history = mem.history.slice(-MAX_HISTORY);
     extractNumeric(mem, text);
     extractLists(mem, text);
 
     // кладём анализ фото в историю (как system, чтобы модель понимала, что это контекст)
-    mem.history.push({ role: "system", content: `АНАЛИЗ ФОТО: ${text}` });
+   mem.history.push({ role: "assistant", content: `Анализ фото: ${text}` });
     mem.history = mem.history.slice(-MAX_HISTORY);
 
     // 1) сохраняем сразу (счётчик фото + факт анализа)

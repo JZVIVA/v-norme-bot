@@ -897,7 +897,6 @@ bot.start(async (ctx) => {
   await ctx.reply("Привет! С чего начнём: вес, питание, самочувствие, активность или меню?");
    await sendResetButton(ctx);   
 });
-});
 bot.on("voice", async (ctx) => {
   try {
     await ctx.sendChatAction("typing");

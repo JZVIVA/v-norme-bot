@@ -189,7 +189,7 @@ const TTL_MS = TTL_DAYS * 24 * 60 * 60 * 1000;
 
 const PROFILE_MAX_DAYS = 365; // "долгая память" до 12 месяцев
 const PROFILE_MAX_MS = PROFILE_MAX_DAYS * 24 * 60 * 60 * 1000;
-const MAX_HISTORY = Number(process.env.MAX_HISTORY || 7);
+
 setInterval(cleanupInactiveUsers, 6 * 60 * 60 * 1000); // раз в 6 часов
 // memory.get(chatId) = { profile: {...}, prefs: {...}, summary: "..." , history: [{role, content}], lastSummaryAt: 0 }
 
@@ -317,7 +317,7 @@ const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const PUBLIC_URL = process.env.PUBLIC_URL; // https://ваш-сервис.onrender.com
 
 const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-4.1-mini";
-const MAX_HISTORY = Number(process.env.MAX_HISTORY || 30);
+const MAX_HISTORY = Number(process.env.MAX_HISTORY || 20);
 const MAX_REPLY_TOKENS = Number(process.env.MAX_REPLY_TOKENS || 1200);
 if (!TELEGRAM_BOT_TOKEN) throw new Error("Missing TELEGRAM_BOT_TOKEN");
 if (!OPENAI_API_KEY) throw new Error("Missing OPENAI_API_KEY");
@@ -919,7 +919,12 @@ mem.history = mem.history.slice(-MAX_HISTORY);
   ...(summary ? [{ role: "system", content: `КОНТЕКСТ ПОЛЬЗОВАТЕЛЯ:\n${summary}` }] : []),
   ...mem.history,
 ];
-
+console.log("OPENAI OUT -> messages.length =", messages.length);
+console.log("OPENAI OUT -> roles =", messages.map(m => m.role));
+console.log(
+  "OPENAI OUT -> last user =",
+  messages.filter(m => m.role === "user").slice(-1)[0]?.content?.slice(0, 200)
+);
     const answer = await callOpenAI(messages, MAX_REPLY_TOKENS);
 
     mem.history.push({ role: "assistant", content: answer });

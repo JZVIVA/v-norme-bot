@@ -35,42 +35,73 @@ const VISION_SYSTEM_PROMPT = `
 - без воды
 - 1 уточняющий вопрос максимум, только если без него нельзя
 `;
-async function analyzeImageOpenAI(imageUrl, prompt = "Опиши, что на фото") {
-  const res = await fetch("https://api.openai.com/v1/chat/completions", {
+function getResponseText(respJson) {
+  // Responses API: берем весь склеенный текст
+  if (typeof respJson?.output_text === "string" && respJson.output_text.trim()) {
+    return respJson.output_text.trim();
+  }
+  // fallback на случай других форматов
+  const out = respJson?.output?.[0]?.content?.map(c => c?.text).filter(Boolean).join("\n");
+  return (out || "").trim();
+}
+
+async function fetchAsDataUrl(url) {
+  const r = await fetch(url);
+  if (!r.ok) {
+    const t = await r.text().catch(() => "");
+    throw new Error(`Photo download failed: ${r.status} ${t}`.slice(0, 400));
+  }
+  const ct = r.headers.get("content-type") || "image/jpeg";
+  const ab = await r.arrayBuffer();
+  const b64 = Buffer.from(ab).toString("base64");
+  return `data:${ct};base64,${b64}`;
+}
+
+async function analyzeImageOpenAI(imageUrl, userPrompt = "") {
+  // 1) Скачиваем фото к себе и конвертируем в base64 data URL (самый надежный вариант)
+  const dataUrl = await fetchAsDataUrl(imageUrl);
+
+  const promptText = (userPrompt && String(userPrompt).trim())
+    ? String(userPrompt).trim()
+    : "Опиши, что на фото, и что из этого можно сделать/как использовать по цели пользователя.";
+
+  const payload = {
+    model: process.env.OPENAI_VISION_MODEL || "gpt-4.1-mini",
+    temperature: 0.3,
+    max_output_tokens: 450, // держим недорого, но осмысленно
+    input: [
+      {
+        role: "system",
+        content: [
+          { type: "input_text", text: (typeof VISION_SYSTEM_PROMPT === "string" ? VISION_SYSTEM_PROMPT : "") }
+        ]
+      },
+      {
+        role: "user",
+        content: [
+          { type: "input_text", text: promptText },
+          { type: "input_image", image_url: dataUrl }
+        ]
+      }
+    ]
+  };
+
+  const res = await fetch("https://api.openai.com/v1/responses", {
     method: "POST",
     headers: {
       "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
       "Content-Type": "application/json"
     },
-    body: JSON.stringify({
-  model: "gpt-4.1-mini",
-  max_tokens: 350,
-  messages: [
-    {
-      role: "system",
-      content: `Вы — ассистент «В норме» (вес, питание, самочувствие).
-Проанализируйте изображение и верните ТОЛЬКО полезное описание по запросу.
+    body: JSON.stringify(payload)
+  });
 
-Определите тип фото: еда / продукты / холодильник / упаковка / тело / лицо.
-- Еда/продукты: перечислите, что видите; если уместно, предложите 1–3 варианта блюда/приёма пищи.
-- Упаковка: считайте важный текст (название, состав, БЖУ/ккал, порция).
-- Тело/лицо: нейтральное описание без диагнозов, без оценок.
+  if (!res.ok) {
+    const t = await res.text().catch(() => "");
+    throw new Error(`OpenAI vision error: ${res.status} ${t}`.slice(0, 600));
+  }
 
-Если данных недостаточно — напишите, чего не хватает (1 вопрос максимум).
-Коротко, без воды.`
-    },
-    {
-      role: "user",
-      content: [
-  { type: "text", text: prompt || "Опиши, что на фото, и что из этого можно сделать." },
-  { type: "image_url", image_url: { url: imageUrl } }
-]
-    }
-  ]
-})
-});
   const json = await res.json();
-  return json.choices?.[0]?.message?.content || "";
+  return getResponseText(json);
 }
 // ====== PERSIST MEMORY (Render Disk) ======
 const fs = require("fs");
@@ -812,7 +843,12 @@ if ((mem.photosToday || 0) >= MAX_PHOTOS_PER_DAY) {
 mem.photosToday = (mem.photosToday || 0) + 1;
     const best = photos[photos.length - 1];
     const link = await ctx.telegram.getFileLink(best.file_id);
-
+mem.lastPhoto = {
+  file_id: best.file_id,
+  url: link.href,
+  caption: (typeof ctx.message.caption === "string" ? ctx.message.caption : ""),
+  ts: Date.now()
+};
     // ВАЖНО: тут нужна ваша функция анализа фото (vision)
     const text = await analyzeImageOpenAI(link.href, ctx.message.caption || "");
 

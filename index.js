@@ -189,7 +189,7 @@ const TTL_MS = TTL_DAYS * 24 * 60 * 60 * 1000;
 
 const PROFILE_MAX_DAYS = 365; // "долгая память" до 12 месяцев
 const PROFILE_MAX_MS = PROFILE_MAX_DAYS * 24 * 60 * 60 * 1000;
-
+const MAX_HISTORY = Number(process.env.MAX_HISTORY || 7);
 setInterval(cleanupInactiveUsers, 6 * 60 * 60 * 1000); // раз в 6 часов
 // memory.get(chatId) = { profile: {...}, prefs: {...}, summary: "..." , history: [{role, content}], lastSummaryAt: 0 }
 

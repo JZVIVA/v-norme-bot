@@ -58,7 +58,9 @@ async function transcribeOpenAI(fileUrl) {
   const response = await fetchWithRetry(fileUrl, {}, { maxAttempts: 3 });
   const buffer = await response.arrayBuffer();
 
-  const openaiRes = await fetchWithRetry("https://api.openai.com/v1/audio/transcriptions", {
+  const openaiRes = await fetchWithRetry(
+  "https://api.openai.com/v1/audio/transcriptions",
+  {
     method: "POST",
     headers: {
       "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
@@ -69,7 +71,9 @@ async function transcribeOpenAI(fileUrl) {
       form.append("model", "gpt-4o-transcribe");
       return form;
     })(),
-  }, { maxAttempts: 4 });
+  },
+  { maxAttempts: 4 }
+);
 
   const data = await openaiRes.json();
   return data.text || "";

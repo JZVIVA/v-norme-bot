@@ -51,10 +51,13 @@ async function fetchAsDataUrl(url) {
     const t = await r.text().catch(() => "");
     throw new Error(`Photo download failed: ${r.status} ${t}`.slice(0, 400));
   }
-  const ct = r.headers.get("content-type") || "image/jpeg";
+  const ctRaw = (r.headers.get("content-type") || "").toLowerCase();
+const ct = ctRaw.startsWith("image/") ? ctRaw : "image/jpeg";
   const ab = await r.arrayBuffer();
   const b64 = Buffer.from(ab).toString("base64");
-  return `data:${ct};base64,${b64}`;
+  const dataUrl = `data:${ct};base64,${b64}`;
+  if (!dataUrl.startsWith("data:image/")) throw new Error(`Bad image mime: ${ctRaw || "empty"}`);
+  return dataUrl;
 }
 
 async function analyzeImageOpenAI(imageUrl, userPrompt = "") {

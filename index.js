@@ -994,7 +994,9 @@ const messages = [
   ...(summary ? [{ role: "system", content: `КОНТЕКСТ ПОЛЬЗОВАТЕЛЯ:\n${summary}` }] : []),
   ...mem.history,
 ];
-
+console.log("OPENAI OUT -> messages.length =", messages.length);
+console.log("OPENAI OUT -> roles =", messages.map(m => m.role));
+console.log("OPENAI OUT -> last user =", (messages.filter(m => m.role === "user").slice(-1)[0]?.content || "").slice(0, 200));
   try {
     const answer = await callOpenAI(messages, MAX_REPLY_TOKENS);
 

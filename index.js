@@ -119,7 +119,13 @@ function loadMemoryFromDisk() {
     if (!fs.existsSync(MEMORY_FILE)) return;
     const raw = fs.readFileSync(MEMORY_FILE, "utf-8");
     const obj = JSON.parse(raw || "{}");
-    for (const [k, v] of Object.entries(obj)) memory.set(k, v);
+for (const [k, v] of Object.entries(obj)) {
+  if (v && typeof v === "object") {
+    if (!v.lastActiveAt) v.lastActiveAt = Date.now();
+    if (!v.firstSeenAt) v.firstSeenAt = v.lastActiveAt;
+  }
+  memory.set(k, v);
+}
     console.log("MEMORY loaded:", Object.keys(obj).length);
   } catch (e) {
     console.error("MEMORY load error:", e);
@@ -153,13 +159,18 @@ function cleanupInactiveUsers() {
     const now = Date.now();
     let removed = 0;
 
-    for (const [chatId, mem] of memory.entries()) {
-      const last = mem?.lastActiveAt || 0;
-      if (last && (now - last) > TTL_MS) {
-        memory.delete(chatId);
-        removed++;
-      }
-    }
+    for (const [chatid, mem] of memory.entries()) {
+  const last = mem?.lastActiveAt || 0;
+  const first = mem?.firstSeenAt || last || 0;
+
+  const inactiveTooLong = last && (now - last) > TTL_MS;              // 30 дней тишины
+  const olderThanYear = first && (now - first) > PROFILE_MAX_MS;      // 12 месяцев
+
+  if (inactiveTooLong || olderThanYear) {
+    memory.delete(chatid);
+    removed++;
+  }
+}
 
     if (removed > 0) {
       saveMemoryToDiskDebounced();
@@ -173,8 +184,12 @@ function cleanupInactiveUsers() {
 // ===== Memory (cheap) per user =====
 const memory = new Map();
 loadMemoryFromDisk();
-const TTL_DAYS = 30;
+const TTL_DAYS = 30; // авто-сброс после 30 дней тишины
 const TTL_MS = TTL_DAYS * 24 * 60 * 60 * 1000;
+
+const PROFILE_MAX_DAYS = 365; // "долгая память" до 12 месяцев
+const PROFILE_MAX_MS = PROFILE_MAX_DAYS * 24 * 60 * 60 * 1000;
+
 setInterval(cleanupInactiveUsers, 6 * 60 * 60 * 1000); // раз в 6 часов
 // memory.get(chatId) = { profile: {...}, prefs: {...}, summary: "..." , history: [{role, content}], lastSummaryAt: 0 }
 
@@ -202,10 +217,14 @@ function getState(chatId) {
       summary: "",                 // короткое саммари для модели
       history: [],                 // короткая история 4-8 сообщений
       lastSummaryAt: 0,
-  lastActiveAt: Date.now()
+firstSeenAt: Date.now(),   // старт отсчёта 12 месяцев
+lastActiveAt: Date.now()   // для авто-сброса после 30 дней тишины
 });
   }
-  return memory.get(chatId);
+  const st = memory.get(chatId);
+st.lastActiveAt = Date.now();
+if (!st.firstSeenAt) st.firstSeenAt = st.lastActiveAt; // на случай старых записей
+return st;
 }
 
 // Нормализация текста

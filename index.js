@@ -348,26 +348,27 @@ function extractNumbers(text, state) {
 
 // Грубая выжимка ограничений без ваших личных данных
 function extractLists(text, state) {
-  const t = (typeof text === "string" ? text : (text?.text ?? "")).toLowerCase();
+  const raw = (typeof text === "string" ? text : (text?.text ?? ""));
+const t = raw.toLowerCase();
 
   // "не ем ..." / "нельзя ..." / "аллергия ..."
   const foodTriggers = ["не ем", "нельзя", "аллерг", "исключ"];
   if (foodTriggers.some(x => t.includes(x))) {
-    state.health.food_limits.push(norm(text));
+    state.health.food_limits.push(norm(raw));
     state.health.food_limits = Array.from(new Set(state.health.food_limits)).slice(-10);
   }
 
   // лекарства: "пью ..." "принимаю ..." "на препарате ..."
   const medTriggers = ["пью ", "принимаю", "на препара", "таблет", "капсул"];
   if (medTriggers.some(x => t.includes(x))) {
-    state.health.meds.push(norm(text));
+    state.health.meds.push(norm(raw));
     state.health.meds = Array.from(new Set(state.health.meds)).slice(-10);
   }
 
   // состояния/диагнозы: ловим просто фразы
   const condTriggers = ["диагноз", "врач", "болит", "анем", "щитовид", "диабет", "давлен", "сколиоз", "артроз", "всд"];
   if (condTriggers.some(x => t.includes(x))) {
-    state.health.conditions.push(norm(text));
+    state.health.conditions.push(norm(raw));
     state.health.conditions = Array.from(new Set(state.health.conditions)).slice(-10);
   }
 }

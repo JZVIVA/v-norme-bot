@@ -850,7 +850,17 @@ mem.lastPhoto = {
   ts: Date.now()
 };
     // ВАЖНО: тут нужна ваша функция анализа фото (vision)
-    const text = await analyzeImageOpenAI(link.href, ctx.message.caption || "");
+   let text = "";
+try {
+  text = await analyzeImageOpenAI(link.href, ctx.message.caption || "");
+} catch (e) {
+  console.error("VISION_FAIL:", e?.message || e);
+  await sendLong(
+    ctx,
+    "Фото получила, но сейчас не смогла его прочитать. Попробуйте отправить фото ещё раз как «фото» (не файлом) и, если можно, добавьте 1 строку: что вы хотите узнать по этому фото."
+  );
+  return;
+}
 
     extractNumeric(mem, text);
     extractLists(mem, text);

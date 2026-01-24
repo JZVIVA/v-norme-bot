@@ -1,5 +1,5 @@
 const express = require("express");
-const { Telegraf } = require("telegraf");
+const { Telegraf, Markup } = require("telegraf");
 // ===== RETRY / BACKOFF (429, 5xx) =====
 function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
@@ -423,10 +423,29 @@ bot.catch((err, ctx) => console.error("BOT ERROR", err));
 bot.catch((err, ctx) => {
   console.error("BOT ERROR", err);
 });
+async function sendResetButton(ctx) {
+  await ctx.reply(
+    "Если хотите начать заново и обнулить данные, нажмите кнопку ниже:",
+    Markup.inlineKeyboard([
+      Markup.button.callback("🔄 Сбросить данные", "RESET_USER_DATA"),
+    ])
+  );
+}
 bot.command("reset", async (ctx) => {
   const chatId = String(ctx.chat.id);
   resetUser(chatId);
   await ctx.reply("Ок. Я сбросила память и начнем с нуля. Что ваша цель сейчас?");
+});
+bot.action("RESET_USER_DATA", async (ctx) => {
+  try {
+    const chatId = String(ctx.chat.id);
+    resetUser(chatId);
+    await ctx.answerCbQuery();
+    await ctx.reply("Ок. Я сбросила данные и начнём с нуля. Что за цель сейчас?");
+  } catch (e) {
+    console.error("RESET BUTTON ERROR:", e);
+    await ctx.reply("Не получилось сбросить. Попробуйте ещё раз.");
+  }
 });
 // ====== SYSTEM PROMPT (ВАШ) ======
 const SYSTEM_PROMPT = `

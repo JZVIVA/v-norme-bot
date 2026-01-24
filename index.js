@@ -904,7 +904,7 @@ bot.on("photo", async (ctx) => {
     const mem = getMem(chatId);
 // лимит фото в день
 const MAX_PHOTOS_PER_DAY = 5;
-const dayKey = new Date().toISOString().slice(0, 10);
+const dayKey = new Date(Date.now() + 3 * 60 * 60 * 1000).toISOString().slice(0, 10);
 
 if (mem.photosDay !== dayKey) {
   mem.photosDay = dayKey;

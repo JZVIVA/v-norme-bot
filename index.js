@@ -871,10 +871,14 @@ try {
 
     extractNumeric(mem, text);
     extractLists(mem, text);
-
+mem.history.push({
+  role: "system",
+  content: `ВИЖУ НА ФОТО (распознано vision): ${text}
+Отвечай на вопрос пользователя, опираясь на это. Не проси перечислять продукты, если они уже видны или описаны выше. Если на фото видно продукты - перечисли их явно списком. `
+});
+mem.history = mem.history.slice(-MAX_HISTORY);
     // кладём анализ фото в историю (как system, чтобы модель понимала, что это контекст)
-   mem.history.push({ role: "assistant", content: `Анализ фото: ${text}` });
-    mem.history = mem.history.slice(-MAX_HISTORY);
+   
 // запрос пользователя — ОБЯЗАТЕЛЬНО последним
 const userPrompt =
   (typeof ctx.message.caption === "string" ? ctx.message.caption : "").trim() ||

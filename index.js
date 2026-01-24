@@ -1,21 +1,75 @@
 const express = require("express");
 const { Telegraf } = require("telegraf");
+// ===== RETRY / BACKOFF (429, 5xx) =====
+function sleep(ms) {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+function isRetryableStatus(status) {
+  return status === 429 || (status >= 500 && status <= 599);
+}
+
+async function fetchWithRetry(url, options = {}, cfg = {}) {
+  const maxAttempts = Number(cfg.maxAttempts || 4);
+  const baseDelayMs = Number(cfg.baseDelayMs || 600);
+  const maxDelayMs = Number(cfg.maxDelayMs || 8000);
+
+  let lastErr;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const resp = await fetch(url, options);
+
+      if (resp.ok) return resp;
+
+      const status = resp.status;
+
+      if (!isRetryableStatus(status) || attempt === maxAttempts) {
+        let body = "";
+        try { body = await resp.text(); } catch (_) {}
+        const e = new Error(
+          `HTTP ${status} ${resp.statusText}${body ? " :: " + body : ""}`.slice(0, 2000)
+        );
+        e.status = status;
+        throw e;
+      }
+
+      const ra = resp.headers.get("retry-after");
+      let waitMs = ra ? Math.min(maxDelayMs, Number(ra) * 1000) : Math.min(maxDelayMs, baseDelayMs * (2 ** (attempt - 1)));
+      // небольшой джиттер, чтобы не долбить синхронно
+      waitMs = Math.floor(waitMs * (0.7 + Math.random() * 0.6));
+      await sleep(waitMs);
+      continue;
+
+    } catch (e) {
+      lastErr = e;
+      // сетевые ошибки тоже повторяем
+      if (attempt === maxAttempts) throw lastErr;
+
+      const waitMs = Math.floor(Math.min(maxDelayMs, baseDelayMs * (2 ** (attempt - 1))) * (0.7 + Math.random() * 0.6));
+      await sleep(waitMs);
+    }
+  }
+
+  throw lastErr || new Error("fetchWithRetry failed");
+}
 async function transcribeOpenAI(fileUrl) {
-  const response = await fetch(fileUrl);
+  // скачиваем файл телеграма (тоже может глючить сеть)
+  const response = await fetchWithRetry(fileUrl, {}, { maxAttempts: 3 });
   const buffer = await response.arrayBuffer();
 
-  const openaiRes = await fetch("https://api.openai.com/v1/audio/transcriptions", {
+  const openaiRes = await fetchWithRetry("https://api.openai.com/v1/audio/transcriptions", {
     method: "POST",
     headers: {
-      "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`
+      "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
     },
     body: (() => {
       const form = new FormData();
       form.append("file", new Blob([buffer]), "audio.ogg");
       form.append("model", "gpt-4o-transcribe");
       return form;
-    })()
-  });
+    })(),
+  }, { maxAttempts: 4 });
 
   const data = await openaiRes.json();
   return data.text || "";
@@ -93,7 +147,7 @@ async function analyzeImageOpenAI(imageUrl, userPrompt = "") {
     ]
   };
 
-  const res = await fetch("https://api.openai.com/v1/responses", {
+  const res = await fetchWithRetry("https://api.openai.com/v1/responses", {
     method: "POST",
     headers: {
       "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
@@ -708,7 +762,7 @@ function mergeUnique(arr, items) {
 
 // OpenAI chat.completions (через fetch)
 async function callOpenAI(messages, maxTokens) {
-  const resp = await fetch("https://api.openai.com/v1/chat/completions", {
+  const resp = await fetchWithRetry("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: {
       "Authorization": `Bearer ${OPENAI_API_KEY}`,
@@ -722,14 +776,7 @@ async function callOpenAI(messages, maxTokens) {
     })
   });
 
-  if (!resp.ok) {
-    const t = await resp.text();
-    throw new Error(`OpenAI error ${resp.status}: ${t}`);
-  }
-
-  const data = await resp.json();
-  return data.choices?.[0]?.message?.content?.trim() || "Не знаю.";
-}
+  
 
 // Извлечение профиля (условий/лекарств/предпочтений/формата меню) в мини-режиме
 async function extractProfileMini(text) {

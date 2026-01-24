@@ -186,15 +186,19 @@ const memory = new Map();
 loadMemoryFromDisk();
 const TTL_DAYS = 30; // авто-сброс после 30 дней тишины
 const TTL_MS = TTL_DAYS * 24 * 60 * 60 * 1000;
-// ===== VOICE LIMITS (time-based) =====
-const VOICE_DAILY_LIMIT_SECONDS = 15 * 60; // 900 сек = 15 минут
 
-function isoDayRU() {
-  return new Date().toISOString().slice(0, 10);
+// ===== VOICE DAILY LIMIT CONFIG =====
+const VOICE_DAILY_LIMIT_SECONDS = 15 * 60; // 15 минут в сутки
+
+function isoDayMSK() {
+  // YYYY-MM-DD по МСК
+  return new Date().toLocaleDateString("en-CA", {
+    timeZone: "Europe/Moscow",
+  });
 }
 
 function ensureVoiceDay(mem) {
-  const today = isoDayRU();
+  const today = isoDayMSK();
   if (mem.voice_day !== today) {
     mem.voice_day = today;
     mem.voice_seconds_today = 0;
@@ -203,19 +207,22 @@ function ensureVoiceDay(mem) {
 }
 
 function getVoiceDurationSeconds(ctx) {
-  const d = ctx?.message?.voice?.duration;
-  return Number.isFinite(d) ? d : 0;
+  // Telegram даёт duration в секундах
+  return Number(ctx.message?.voice?.duration || 0);
 }
 
-function canAcceptVoice(mem, addSeconds) {
-  ensureVoiceDay(mem);
-  return (Number(mem.voice_seconds_today || 0) + addSeconds) <= VOICE_DAILY_LIMIT_SECONDS;
+function canAcceptVoice(mem, seconds) {
+  return (
+    Number(mem.voice_seconds_today || 0) + Number(seconds) <=
+    VOICE_DAILY_LIMIT_SECONDS
+  );
 }
 
-function addVoiceUsage(mem, addSeconds) {
-  ensureVoiceDay(mem);
-  mem.voice_seconds_today = Number(mem.voice_seconds_today || 0) + addSeconds;
+function addVoiceUsage(mem, seconds) {
+  mem.voice_seconds_today =
+    Number(mem.voice_seconds_today || 0) + Number(seconds);
 }
+
 const PROFILE_MAX_DAYS = 365; // "долгая память" до 12 месяцев
 const PROFILE_MAX_MS = PROFILE_MAX_DAYS * 24 * 60 * 60 * 1000;
 
@@ -846,12 +853,12 @@ if (!canAcceptVoice(mem, voiceDur)) {
     const leftSec = left % 60;
 
     await ctx.reply(
-      "Сегодня лимит голосовых исчерпан (15 минут в сутки).\n" +
+      "На сегодня лимит голосовых исчерпан (15 минут в сутки).\n" +
       "Давайте продолжим текстом — так бот работает стабильнее.\n" +
       `Остаток на сегодня: ${leftMin}:${String(leftSec).padStart(2, "0")}`
     );
   } else {
-    await ctx.reply("Давайте дальше текстом, пожалуйста.");
+    await ctx.reply("Давайте дальше продолжим текстом, пожалуйста.");
   }
   return;
 }

@@ -36,13 +36,16 @@ const VISION_SYSTEM_PROMPT = `
 - 1 уточняющий вопрос максимум, только если без него нельзя
 `;
 function getResponseText(respJson) {
-  // Responses API: берем весь склеенный текст
   if (typeof respJson?.output_text === "string" && respJson.output_text.trim()) {
     return respJson.output_text.trim();
   }
-  // fallback на случай других форматов
-  const out = respJson?.output?.[0]?.content?.map(c => c?.text).filter(Boolean).join("\n");
-  return (out || "").trim();
+  const parts = respJson?.output?.[0]?.content || [];
+  const text = parts
+    .filter(p => p && (p.type === "output_text" || typeof p.text === "string"))
+    .map(p => p.text)
+    .filter(Boolean)
+    .join("\n");
+  return (text || "").trim();
 }
 
 async function fetchAsDataUrl(url) {

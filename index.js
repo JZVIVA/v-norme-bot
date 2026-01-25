@@ -349,30 +349,33 @@ function extractNumbers(text, state) {
   if (t.includes("поддерж")) state.profile.goal = "поддержание";
 }
 
-// Грубая выжимка ограничений без ваших личных данных
-function extractLists(text, state) {
+// Грубая выжимка ограничений (в память пользователя)
+function extractLists(mem, text) {
   const raw = (typeof text === "string" ? text : (text?.text ?? ""));
-const t = raw.toLowerCase();
+  const t = raw.toLowerCase();
 
-  // "не ем ..." / "нельзя ..." / "аллергия ..."
+  // "не ем ..." / "нельзя ..." / "аллергия ..." -> preferences
   const foodTriggers = ["не ем", "нельзя", "аллерг", "исключ"];
   if (foodTriggers.some(x => t.includes(x))) {
-    state.health.food_limits.push(norm(raw));
-    state.health.food_limits = Array.from(new Set(state.health.food_limits)).slice(-10);
+    mem.profile.preferences = mem.profile.preferences
+      ? `${mem.profile.preferences}; ${raw}`.slice(0, 400)
+      : raw.slice(0, 400);
   }
 
-  // лекарства: "пью ..." "принимаю ..." "на препарате ..."
+  // лекарства -> medications
   const medTriggers = ["пью ", "принимаю", "на препара", "таблет", "капсул"];
   if (medTriggers.some(x => t.includes(x))) {
-    state.health.meds.push(norm(raw));
-    state.health.meds = Array.from(new Set(state.health.meds)).slice(-10);
+    mem.health.medications = Array.from(
+      new Set([...(mem.health.medications || []), raw.trim()].filter(Boolean))
+    ).slice(-10);
   }
 
-  // состояния/диагнозы: ловим просто фразы
+  // состояния/диагнозы -> conditions
   const condTriggers = ["диагноз", "врач", "болит", "анем", "щитовид", "диабет", "давлен", "сколиоз", "артроз", "всд"];
   if (condTriggers.some(x => t.includes(x))) {
-    state.health.conditions.push(norm(raw));
-    state.health.conditions = Array.from(new Set(state.health.conditions)).slice(-10);
+    mem.health.conditions = Array.from(
+      new Set([...(mem.health.conditions || []), raw.trim()].filter(Boolean))
+    ).slice(-10);
   }
 }
 

@@ -1063,10 +1063,11 @@ mem.history = mem.history.slice(-MAX_HISTORY);
     saveMemoryToDiskDebounced();
 
     await sendLong(ctx, answer);
-  } catch (e) {
-  console.error("PHOTO ERROR", e);
-  await sendLong(ctx, "Не смогла обработать фото. Пришлите ещё раз, пожалуйста.");
-}
+ } catch (e) {
+    console.error("PHOTO ERROR", e);
+    await sendLong(ctx, "Не смогла обработать фото. Пришлите ещё раз, пожалуйста.");
+  }
+});
 bot.on("text", async (ctx) => {
   const chatId = String(ctx.chat.id);
 const text = ctx.message.text || "";

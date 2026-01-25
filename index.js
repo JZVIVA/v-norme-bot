@@ -799,8 +799,14 @@ async function callOpenAI(messages, maxTokens) {
     })
   });
 
-  
+  if (!resp.ok) {
+    const t = await resp.text().catch(() => "");
+    throw new Error(`OpenAI error: ${resp.status} ${t}`.slice(0, 600));
+  }
 
+  const json = await resp.json();
+  return json?.choices?.[0]?.message?.content || "";
+}
 // Извлечение профиля (условий/лекарств/предпочтений/формата меню) в мини-режиме
 async function extractProfileMini(text) {
   const sys = `Извлеки из текста ТОЛЬКО факты пользователя для профиля.

@@ -1099,9 +1099,6 @@ if (!mem.greeted) {
 mem.lastActiveAt = Date.now();
 extractNumeric(mem, text);
 extractLists(mem, ctx.message?.text ?? "");
-bot.on("voice", async (ctx) => {
-  console.log("VOICE update", ctx.message?.voice?.file_id);
-});
 
 // 1) дешёвое извлечение (уже сделали выше)
 

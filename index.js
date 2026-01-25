@@ -376,33 +376,6 @@ const t = raw.toLowerCase();
   }
 }
 
-// Собираем компактное саммари (это уходит в OpenAI вместо длинной истории)
-function buildSummary(state) {
-  const p = state.profile;
-  const pr = [];
-
-  if (p.sex) pr.push(`пол: ${p.sex}`);
-  if (p.age) pr.push(`возраст: ${p.age}`);
-  if (p.height_cm) pr.push(`рост: ${p.height_cm} см`);
-  if (p.weight_kg) pr.push(`вес: ${p.weight_kg} кг`);
-  if (p.goal) pr.push(`цель: ${p.goal}`);
-  if (p.target_weight_kg) pr.push(`цель по весу: ${p.target_weight_kg} кг`);
-
-  const prefs = [];
-  if (state.prefs.menu_mode) prefs.push(`калории: ${state.prefs.menu_mode}`);
-  if (state.prefs.portions_mode) prefs.push(`порции: ${state.prefs.portions_mode}`);
-  if (state.prefs.meals_per_day) prefs.push(`приёмов пищи: ${state.prefs.meals_per_day}`);
-
-  const blocks = [];
-  if (pr.length) blocks.push(`Профиль: ${pr.join(", ")}.`);
-  if (prefs.length) blocks.push(`Формат: ${prefs.join(", ")}.`);
-  if (state.health.food_limits.length) blocks.push(`Ограничения в еде: ${state.health.food_limits.slice(-3).join(" | ")}.`);
-  if (state.health.conditions.length) blocks.push(`Состояния: ${state.health.conditions.slice(-3).join(" | ")}.`);
-  if (state.health.meds.length) blocks.push(`Препараты: ${state.health.meds.slice(-3).join(" | ")}.`);
-
-  return blocks.join("\n").trim();
-}
-
 // ===== End Memory =====
 // ====== ENV ======
 const PORT = process.env.PORT || 3000;

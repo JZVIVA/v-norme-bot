@@ -675,8 +675,33 @@ function emptyMem() {
 }
 
 function getMem(chatId) {
-  if (!memory.has(chatId)) memory.set(chatId, emptyMem());
-  return memory.get(chatId);
+  // 1) если записи нет — создаём новую
+  if (!memory.has(chatId)) {
+    const fresh = emptyMem();
+    memory.set(chatId, fresh);
+    return fresh;
+  }
+
+  // 2) если запись есть — апгрейдим до текущего формата
+  const v = memory.get(chatId);
+  const base = emptyMem();
+
+  const upgraded = {
+    ...base,
+    ...(v && typeof v === "object" ? v : {}),
+  };
+
+  upgraded.profile = { ...base.profile, ...(v?.profile && typeof v.profile === "object" ? v.profile : {}) };
+  upgraded.prefs   = { ...base.prefs,   ...(v?.prefs   && typeof v.prefs   === "object" ? v.prefs   : {}) };
+  upgraded.health  = { ...base.health,  ...(v?.health  && typeof v.health  === "object" ? v.health  : {}) };
+
+  upgraded.history = Array.isArray(v?.history) ? v.history : base.history;
+
+  if (!upgraded.firstSeenAt) upgraded.firstSeenAt = Date.now();
+  if (!upgraded.lastActiveAt) upgraded.lastActiveAt = Date.now();
+
+  memory.set(chatId, upgraded);
+  return upgraded;
 }
 
 // ====== CHEAP PARSERS (цифры/простые сигналы) ======

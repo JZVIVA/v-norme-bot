@@ -1068,6 +1068,7 @@ mem.history = mem.history.slice(-MAX_HISTORY);
     await sendLong(ctx, "Не смогла обработать фото. Пришлите ещё раз, пожалуйста.");
   }
 });
+  
 bot.on("text", async (ctx) => {
   const chatId = String(ctx.chat.id);
 const text = ctx.message.text || "";

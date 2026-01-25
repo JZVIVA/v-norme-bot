@@ -688,7 +688,7 @@ function getMem(chatId) {
 
   const upgraded = {
     ...base,
-    ...(v && typeof v === "object" ? v : {}),
+    ...(v && typeof v === "object" ? v : base),
   };
 
   upgraded.profile = { ...base.profile, ...(v?.profile && typeof v.profile === "object" ? v.profile : {}) };

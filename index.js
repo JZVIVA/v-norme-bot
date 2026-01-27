@@ -399,6 +399,10 @@ app.use(express.json());
 
 // ====== BOT ======
 const bot = new Telegraf(TELEGRAM_BOT_TOKEN);
+bot.telegram.setMyCommands([
+  { command: "start", description: "Начать диалог" },
+  { command: "reset", description: "Сбросить данные и начать заново" }
+]);
 bot.catch((err, ctx) => console.error("BOT ERROR", err));
 bot.catch((err, ctx) => {
   console.error("BOT ERROR", err);
@@ -1196,11 +1200,6 @@ if (
   return;
 }
 const mem = getMem(chatId);
-  if (!mem.resetShown) {
-  await sendResetButton(ctx);
-  mem.resetShown = true;
-  saveMemoryToDiskDebounced();
-}
   // приветствие только 1 раз за сессию памяти
 if (!mem.greeted) {
   mem.greeted = true;

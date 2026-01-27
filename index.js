@@ -427,6 +427,110 @@ bot.action("RESET_USER_DATA", async (ctx) => {
     await ctx.reply("Не получилось сбросить. Попробуйте ещё раз.");
   }
 });
+async function sendMenuEntry(ctx) {
+  await ctx.reply(
+    "Меню делаем так. Выберите формат:",
+    Markup.inlineKeyboard([
+      [Markup.button.callback("🍽 Примерно (без граммов)", "MENU_CAL_APPROX")],
+      [Markup.button.callback("📏 Точно (с граммами)", "MENU_CAL_EXACT")]
+    ])
+  );
+}
+
+bot.command("menu", async (ctx) => {
+  const chatId = String(ctx.chat.id);
+  const mem = getMem(chatId);
+  mem.menu_stage = "await_calories";
+  saveMemoryToDiskDebounced();
+  await sendMenuEntry(ctx);
+});
+
+bot.hears(["меню", "🍽 Меню"], async (ctx) => {
+  const chatId = String(ctx.chat.id);
+  const mem = getMem(chatId);
+  mem.menu_stage = "await_calories";
+  saveMemoryToDiskDebounced();
+  await sendMenuEntry(ctx);
+});
+
+bot.action(["MENU_CAL_APPROX", "MENU_CAL_EXACT"], async (ctx) => {
+  const chatId = String(ctx.chat.id);
+  const mem = getMem(chatId);
+
+  mem.food_format = mem.food_format || {};
+  mem.food_format.calories_mode = (ctx.callbackQuery.data === "MENU_CAL_EXACT") ? "точно" : "примерно";
+  mem.menu_stage = "await_portions";
+
+  saveMemoryToDiskDebounced();
+  await ctx.answerCbQuery();
+
+  await ctx.reply(
+    "Ок. Теперь порции:",
+    Markup.inlineKeyboard([
+      [Markup.button.callback("⚖️ В граммах", "MENU_PORTIONS_GRAMS")],
+      [Markup.button.callback("👀 На глаз", "MENU_PORTIONS_EYE")]
+    ])
+  );
+});
+
+bot.action(["MENU_PORTIONS_GRAMS", "MENU_PORTIONS_EYE"], async (ctx) => {
+  const chatId = String(ctx.chat.id);
+  const mem = getMem(chatId);
+
+  mem.food_format = mem.food_format || {};
+  mem.food_format.portions_mode = (ctx.callbackQuery.data === "MENU_PORTIONS_GRAMS") ? "граммы" : "на глаз";
+  mem.menu_stage = "await_meals";
+
+  saveMemoryToDiskDebounced();
+  await ctx.answerCbQuery();
+
+  await ctx.reply(
+    "Сколько приёмов пищи в день?",
+    Markup.inlineKeyboard([
+      [Markup.button.callback("3", "MENU_MEALS_3"), Markup.button.callback("4", "MENU_MEALS_4"), Markup.button.callback("5", "MENU_MEALS_5")]
+    ])
+  );
+});
+
+bot.action(["MENU_MEALS_3", "MENU_MEALS_4", "MENU_MEALS_5"], async (ctx) => {
+  const chatId = String(ctx.chat.id);
+  const mem = getMem(chatId);
+
+  const n = Number(ctx.callbackQuery.data.split("_").pop());
+  mem.food_format = mem.food_format || {};
+  mem.food_format.meals_per_day = n;
+  mem.menu_stage = null;
+
+  // проверка: есть ли базовые данные
+  if (!mem.profile?.height_cm || !mem.profile?.weight_kg || !mem.profile?.age || !mem.profile?.sex || !mem.profile?.goal) {
+    saveMemoryToDiskDebounced();
+    await ctx.answerCbQuery();
+    await ctx.reply(
+      "Чтобы составить меню, мне нужны данные одним сообщением:\n" +
+      "рост (см), вес (кг), возраст, пол, цель (снижение/набор/поддержание).\n" +
+      "Пример: «170 см, 84 кг, 49 лет, жен, цель снижение»"
+    );
+    return;
+  }
+
+  const summary = buildSummary(mem);
+
+  const messages = [
+    { role: "system", content: SYSTEM_PROMPT },
+    ...(summary ? [{ role: "system", content: `КОНТЕКСТ ПОЛЬЗОВАТЕЛЯ:\n${summary}` }] : []),
+    { role: "user", content:
+      `Составь меню на 1 день под цель пользователя.
+Формат: калории=${mem.food_format.calories_mode}, порции=${mem.food_format.portions_mode}, приёмов=${mem.food_format.meals_per_day}.
+Дай: завтрак/обед/ужин (+ перекусы если нужно). Коротко, по делу.`
+    }
+  ];
+
+  saveMemoryToDiskDebounced();
+  await ctx.answerCbQuery();
+
+  const answer = await callOpenAI(messages, MAX_REPLY_TOKENS);
+  await sendLong(ctx, answer);
+});
 // ====== SYSTEM PROMPT (ВАШ) ======
 const SYSTEM_PROMPT = `
 СИСТЕМНОЕ СООБЩЕНИЕ

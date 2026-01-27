@@ -418,14 +418,14 @@ async function sendResetButton(ctx) {
 bot.command("reset", async (ctx) => {
   const chatId = String(ctx.chat.id);
   resetUser(chatId);
-  await ctx.reply("Ок. Я сбросила память и начнем с нуля. Что ваша цель сейчас?");
+  await ctx.reply("Ок. Я сбросила память и начнем с нуля. С чего вы хотите начать прямо сейчас?");
 });
 bot.action("RESET_USER_DATA", async (ctx) => {
   try {
     const chatId = String(ctx.chat.id);
     resetUser(chatId);
     await ctx.answerCbQuery();
-    await ctx.reply("Ок. Я сбросила данные и начнём с нуля. Что за цель сейчас?");
+    await ctx.reply("Ок. Я сбросила данные и начнём с нуля. С чего вы хотите начать прямо сейчас?");
   } catch (e) {
     console.error("RESET BUTTON ERROR:", e);
     await ctx.reply("Не получилось сбросить. Попробуйте ещё раз.");

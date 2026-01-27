@@ -1196,6 +1196,11 @@ if (
   return;
 }
 const mem = getMem(chatId);
+  if (!mem.resetShown) {
+  await sendResetButton(ctx);
+  mem.resetShown = true;
+  saveMemoryToDiskDebounced();
+}
   // приветствие только 1 раз за сессию памяти
 if (!mem.greeted) {
   mem.greeted = true;

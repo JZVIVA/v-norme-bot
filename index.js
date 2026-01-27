@@ -692,7 +692,7 @@ function getMem(chatId) {
   };
 
   upgraded.profile = { ...base.profile, ...(v?.profile && typeof v.profile === "object" ? v.profile : {}) };
-  upgraded.prefs   = { ...base.prefs,   ...(v?.prefs   && typeof v.prefs   === "object" ? v.prefs   : {}) };
+  upgraded.prefs = { ...base.prefs, ...(v?.prefs && typeof v.prefs === "object" ? v.prefs : {}) };
   upgraded.health  = { ...base.health,  ...(v?.health  && typeof v.health  === "object" ? v.health  : {}) };
 
   upgraded.history = Array.isArray(v?.history) ? v.history : base.history;
